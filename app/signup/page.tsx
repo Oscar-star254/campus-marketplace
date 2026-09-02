@@ -20,35 +20,27 @@ export default function SignupPage() {
     setError(null);
 
     if (!isAllowedCampusEmail(email)) {
-      setError("Please sign up with your campus email address.");
+      setError("Only gmail.com addresses can sign up.");
       return;
     }
 
     setLoading(true);
 
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullName, email, phone, password }),
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName, phone_number: phone },
+      },
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      setError(data.error ?? "Sign up failed");
+    if (signUpError) {
+      setError(signUpError.message);
       setLoading(false);
       return;
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (signInError) {
-      setError(signInError.message);
-      setLoading(false);
-      return;
-    }
-
-    router.push("/listings");
+    router.push(`/verify?email=${encodeURIComponent(email)}`);
   }
 
   return (
@@ -56,7 +48,7 @@ export default function SignupPage() {
       <h1>Create an account</h1>
       <form onSubmit={handleSubmit}>
         <input placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-        <input placeholder="Campus email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input placeholder="Gmail address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <input placeholder="Phone number (e.g. 2547XXXXXXXX)" value={phone} onChange={(e) => setPhone(e.target.value)} required />
         <input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
         {error && <p className="error">{error}</p>}
